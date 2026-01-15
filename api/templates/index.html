@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AniGen - Infinite Anime Director</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 AniGen - Infinite Anime Director</h1>
+            <div class="system-status">
+                <span class="status-badge status-{{ state.system_status }}">{{ state.system_status }}</span>
+                <span class="info">Episode {{ state.current_episode }} • Scene {{ state.current_scene_in_episode }}/6</span>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">{{ state.total_episodes }}</div>
+                <div class="stat-label">Total Episodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ state.total_scenes }}</div>
+                <div class="stat-label">Total Scenes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ (state.total_episodes * 3)|int }} min</div>
+                <div class="stat-label">Total Duration</div>
+            </div>
+        </div>
+
+        <main>
+            <h2>Episodes</h2>
+            {% if episodes %}
+            <div class="episodes-grid">
+                {% for episode in episodes %}
+                <div class="episode-card">
+                    <div class="episode-header">
+                        <h3>Episode {{ episode.episode_number }}</h3>
+                        <span class="episode-status">
+                            {{ episode.completed_scenes }}/{{ episode.scene_count }} scenes
+                        </span>
+                    </div>
+                    <p class="episode-summary">{{ episode.episode_arc_summary }}</p>
+                    <div class="episode-meta">
+                        <span class="duration">⏱️ {{ episode.total_duration_seconds }}s</span>
+                        {% if episode.total_cost_usd %}
+                        <span class="cost">💰 ${{ "%.2f"|format(episode.total_cost_usd) }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="episode-footer">
+                        {% if episode.generation_completed_at %}
+                        <span class="completed">✓ Completed</span>
+                        <a href="/episode/{{ episode.episode_number }}" class="btn-view">View Episode →</a>
+                        {% else %}
+                        <span class="in-progress">⏳ Generating...</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No episodes generated yet. System is starting...</p>
+                <p class="hint">Episodes will appear here as they're generated (one every hour in production mode)</p>
+            </div>
+            {% endif %}
+        </main>
+
+        <footer>
+            <p>Auto-refresh in <span id="countdown">10</span> minutes</p>
+            <p class="info-text">Cost: ~$27.66/episode • Duration: 3 min/episode • Rate: 1 episode/hour</p>
+        </footer>
+    </div>
+
+    <script>
+        // Auto-refresh every 10 minutes
+        let countdown = 600; // 10 minutes in seconds
+        const countdownEl = document.getElementById('countdown');
+
+        setInterval(() => {
+            countdown--;
+            const minutes = Math.floor(countdown / 60);
+            const seconds = countdown % 60;
+            countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (countdown <= 0) {
+                location.reload();
+            }
+        }, 1000);
+
+        // Refresh immediately on visible (tab switch)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

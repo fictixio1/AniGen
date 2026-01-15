@@ -1,0 +1,2 @@
+# Absolute bare minimum
+aiosqlite==0.20.0

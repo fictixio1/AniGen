@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Episode {{ episode.episode_number }} - AniGen</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">← Back to Episodes</a></h1>
+        </header>
+
+        <div class="episode-detail">
+            <div class="episode-detail-header">
+                <h2>Episode {{ episode.episode_number }}</h2>
+                <div class="episode-meta-large">
+                    <span>⏱️ {{ episode.total_duration_seconds }}s ({{ (episode.total_duration_seconds / 60)|round(1) }} min)</span>
+                    {% if episode.total_cost_usd %}
+                    <span>💰 ${{ "%.2f"|format(episode.total_cost_usd) }}</span>
+                    {% endif %}
+                    {% if episode.generation_completed_at %}
+                    <span>✓ Completed {{ episode.generation_completed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <p class="episode-summary-large">{{ episode.episode_arc_summary }}</p>
+
+            <div class="scenes-container">
+                <h3>Scenes ({{ scenes|length }}/6)</h3>
+
+                {% for scene in scenes %}
+                <div class="scene-card">
+                    <div class="scene-header">
+                        <h4>Scene {{ scene.scene_in_episode }}</h4>
+                        <span class="scene-number">Global #{{ scene.scene_number }}</span>
+                    </div>
+
+                    <div class="scene-content">
+                        {% if scene.video_url and scene.video_url.startswith('http') %}
+                        <div class="video-player">
+                            <video controls width="100%">
+                                <source src="{{ scene.video_url }}" type="video/mp4">
+                                Your browser does not support video playback.
+                            </video>
+                        </div>
+                        {% else %}
+                        <div class="video-placeholder">
+                            <div class="placeholder-icon">🎬</div>
+                            <p>Mock Video</p>
+                            <p class="placeholder-url">{{ scene.video_url }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="scene-details">
+                            <h5>Narrative</h5>
+                            <p>{{ scene.narrative_summary }}</p>
+
+                            <h5>Prompt</h5>
+                            <p class="scene-prompt">{{ scene.video_prompt }}</p>
+
+                            <div class="scene-meta">
+                                <span>⏱️ {{ scene.duration_seconds }}s</span>
+                                {% if scene.generation_cost_usd %}
+                                <span>💰 ${{ "%.2f"|format(scene.generation_cost_usd) }}</span>
+                                {% endif %}
+                                {% if scene.retry_count > 0 %}
+                                <span>🔄 {{ scene.retry_count }} retries</span>
+                                {% endif %}
+                                {% if scene.generation_completed_at %}
+                                <span>✓ {{ scene.generation_completed_at.strftime('%H:%M:%S') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if scenes|length < 6 %}
+                <div class="scene-card scene-pending">
+                    <div class="scene-header">
+                        <h4>Scene {{ scenes|length + 1 }}</h4>
+                        <span class="scene-status">⏳ Waiting...</span>
+                    </div>
+                    <p>This scene will be generated shortly</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="director-plan">
+                <h3>Director's Plan</h3>
+                <pre>{{ episode.director_plan }}</pre>
+            </div>
+        </div>
+
+        <footer>
+            <a href="/" class="btn-back">← Back to All Episodes</a>
+        </footer>
+    </div>
+
+    <script>
+        // Auto-refresh if episode incomplete
+        {% if scenes|length < 6 %}
+        setTimeout(() => {
+            location.reload();
+        }, 60000); // Refresh every minute
+        {% endif %}
+    </script>
+</body>
+</html>
