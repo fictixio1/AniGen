@@ -1,2 +1,2 @@
-web: bash start_api.sh
+web: python start_api.py
 worker: python start_worker.py
