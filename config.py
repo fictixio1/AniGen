@@ -2,15 +2,25 @@
 
 import os
 from decimal import Decimal
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
 class Config(BaseSettings):
     """System configuration loaded from environment variables."""
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+
     # Database
-    database_url: str = Field(default="postgresql://anigen_user:anigen_password@localhost:5432/anigen")
+    database_url: str = Field(
+        default="postgresql://anigen_user:anigen_password@localhost:5432/anigen",
+        validation_alias="DATABASE_URL"
+    )
 
     # API Keys
     anthropic_api_key: str = Field(default="")
@@ -39,10 +49,6 @@ class Config(BaseSettings):
 
     # Logging
     log_level: str = Field(default="INFO")
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 # Global config instance
