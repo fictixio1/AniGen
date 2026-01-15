@@ -108,7 +108,7 @@ class VideoGenerator:
             "prompt": prompt,
             "aspect_ratio": "16:9",
             "loop": False,
-            "model": "luma-dream-machine-v1"
+            "model": "ray-2"
         }
 
         async with httpx.AsyncClient(timeout=600.0) as client:
