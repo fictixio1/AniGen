@@ -10,16 +10,16 @@ class Config(BaseSettings):
     """System configuration loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env" if os.path.exists(".env") else None,
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"
+        extra="ignore",
+        env_prefix=""
     )
 
-    # Database
+    # Database - will read from DATABASE_URL env var
     database_url: str = Field(
-        default="postgresql://anigen_user:anigen_password@localhost:5432/anigen",
-        validation_alias="DATABASE_URL"
+        default="postgresql://anigen_user:anigen_password@localhost:5432/anigen"
     )
 
     # API Keys
