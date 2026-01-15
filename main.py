@@ -1,4 +1,5 @@
 """Main orchestration loop for infinite anime generation."""
+# Ready for generation with Anthropic credits
 
 import asyncio
 import logging
