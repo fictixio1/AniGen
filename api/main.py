@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from database import db
@@ -27,6 +28,15 @@ app = FastAPI(
     description="Web interface for viewing generated anime episodes",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Add CORS middleware to allow requests from Vercel
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for now (can restrict to Vercel domain later)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files and templates
