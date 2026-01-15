@@ -15,11 +15,22 @@ class EpisodeManager:
 
     async def start_episode(self, episode_number: int, director_plan: str, episode_summary: str) -> int:
         """
-        Create a new episode record.
+        Create a new episode record, or return existing episode if it already exists.
 
         Returns:
-            episode_id: Database ID of the created episode
+            episode_id: Database ID of the created or existing episode
         """
+        # Check if episode already exists
+        existing = await db.fetchrow("""
+            SELECT id FROM episodes WHERE episode_number = $1
+        """, episode_number)
+
+        if existing:
+            episode_id = existing['id']
+            logger.warning(f"Episode {episode_number} already exists (ID: {episode_id}), reusing it")
+            return episode_id
+
+        # Create new episode
         episode_id = await db.fetchval("""
             INSERT INTO episodes (
                 episode_number,
@@ -52,11 +63,22 @@ class EpisodeManager:
         duration_seconds: int = 30
     ) -> int:
         """
-        Create a new scene record.
+        Create a new scene record, or return existing scene if it already exists.
 
         Returns:
-            scene_id: Database ID of the created scene
+            scene_id: Database ID of the created or existing scene
         """
+        # Check if scene already exists
+        existing = await db.fetchrow("""
+            SELECT id FROM scenes WHERE scene_number = $1
+        """, scene_number)
+
+        if existing:
+            scene_id = existing['id']
+            logger.warning(f"Scene {scene_number} already exists (ID: {scene_id}), reusing it")
+            return scene_id
+
+        # Create new scene
         scene_id = await db.fetchval("""
             INSERT INTO scenes (
                 scene_number,
