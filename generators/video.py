@@ -23,6 +23,10 @@ class VideoGenerator:
         self.secret_key = config.kling_secret_key
         self.base_url = "https://api.klingai.com/v1"
 
+        # Log credentials for debugging (first 10 chars only)
+        logger.info(f"Kling Access Key: {self.access_key[:10]}..." if self.access_key else "Kling Access Key: NOT SET")
+        logger.info(f"Kling Secret Key: {self.secret_key[:10]}..." if self.secret_key else "Kling Secret Key: NOT SET")
+
     async def generate_video(self, prompt: str, duration: int = 30) -> Dict:
         """
         Generate a 30-second video using Kling AI (3x 10s clips concatenated).
@@ -100,24 +104,27 @@ class VideoGenerator:
         Returns:
             Video URL
         """
-        headers = {
-            "Authorization": f"Bearer {self.access_key}:{self.secret_key}",
-            "Content-Type": "application/json"
+        # Kling AI uses access_key and secret_key in the payload, not headers
+        # Reference: Kling AI API documentation
+        payload = {
+            "access_key": self.access_key,
+            "secret_key": self.secret_key,
+            "model_name": "kling-v-1",
+            "prompt": prompt,
+            "duration": str(duration),
+            "aspect_ratio": "16:9",
+            "cfg_scale": 0.5,
+            "mode": "std"
         }
 
-        # Kling AI text-to-video payload
-        payload = {
-            "model": "kling-v1",  # Kling AI's main model
-            "prompt": prompt,
-            "duration": duration,
-            "aspect_ratio": "16:9",
-            "cfg_scale": 0.5,  # Prompt adherence (0.5 = balanced)
-            "mode": "standard"  # or "pro" for higher quality
+        headers = {
+            "Content-Type": "application/json"
         }
 
         async with httpx.AsyncClient(timeout=600.0) as client:
             # Submit generation request
             logger.info("Submitting generation request to Kling AI...")
+            logger.info(f"Payload: {payload}")  # Debug log
             response = await client.post(
                 f"{self.base_url}/videos/text2video",
                 headers=headers,
