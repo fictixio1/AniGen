@@ -26,8 +26,7 @@ class Config(BaseSettings):
     anthropic_api_key: str = Field(default="")
     google_ai_api_key: str = Field(default="")
     openai_api_key: str = Field(default="")
-    kling_access_key: str = Field(default="")
-    kling_secret_key: str = Field(default="")
+    luma_api_key: str = Field(default="")
 
     # AWS S3
     aws_access_key_id: str = Field(default="")

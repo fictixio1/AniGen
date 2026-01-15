@@ -1,4 +1,4 @@
-"""Video generation using Kling AI."""
+"""Video generation using Luma AI Dream Machine."""
 
 import logging
 import asyncio
@@ -16,20 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class VideoGenerator:
-    """Kling AI video generator with FFmpeg concatenation for 30s clips."""
+    """Luma AI Dream Machine video generator with extension for 30s clips."""
 
     def __init__(self):
-        self.access_key = config.kling_access_key
-        self.secret_key = config.kling_secret_key
-        self.base_url = "https://api.klingai.com/v1"
+        self.api_key = config.luma_api_key
+        self.base_url = "https://api.lumalabs.ai/dream-machine/v1"
 
-        # Log credentials for debugging (first 10 chars only)
-        logger.info(f"Kling Access Key: {self.access_key[:10]}..." if self.access_key else "Kling Access Key: NOT SET")
-        logger.info(f"Kling Secret Key: {self.secret_key[:10]}..." if self.secret_key else "Kling Secret Key: NOT SET")
+        logger.info(f"Luma API Key: {self.api_key[:10]}..." if self.api_key else "Luma API Key: NOT SET")
 
     async def generate_video(self, prompt: str, duration: int = 30) -> Dict:
         """
-        Generate a 30-second video using Kling AI (3x 10s clips concatenated).
+        Generate a 30-second video using Luma AI (6x 5s clips).
 
         Args:
             prompt: Video description/prompt
@@ -38,7 +35,7 @@ class VideoGenerator:
         Returns:
             Dict with video_url, duration, and cost
         """
-        logger.info(f"Generating {duration}s video with Kling AI (3x 10s clips)")
+        logger.info(f"Generating {duration}s video with Luma AI Dream Machine")
         logger.info(f"Prompt: {prompt[:100]}...")
 
         try:
@@ -47,17 +44,16 @@ class VideoGenerator:
             # Enhance prompt for anime style
             enhanced_prompt = self._enhance_prompt_for_anime(prompt)
 
-            # Generate three 10-second clips
-            num_clips = 3  # 3x 10s = 30s total
-            clip_duration = 10
+            # Generate 6x 5-second clips (Luma generates ~5s per clip)
+            num_clips = 6  # 6 × 5s = 30s total
 
-            logger.info(f"Generating {num_clips} clips of {clip_duration}s each...")
+            logger.info(f"Generating {num_clips} clips of ~5s each...")
             clip_urls = []
 
             for i in range(num_clips):
                 logger.info(f"Generating clip {i+1}/{num_clips}...")
                 clip_prompt = self._adapt_prompt_for_segment(enhanced_prompt, i+1, num_clips)
-                clip_url = await self._generate_single_clip(clip_prompt, clip_duration)
+                clip_url = await self._generate_single_clip(clip_prompt)
                 clip_urls.append(clip_url)
                 logger.info(f"✓ Clip {i+1} generated: {clip_url}")
 
@@ -67,8 +63,8 @@ class VideoGenerator:
 
             generation_time = time.time() - start_time
 
-            # Calculate cost: ~$0.70 per 10s clip × 3 clips = $2.10 per 30s scene
-            cost = Decimal(str(num_clips)) * Decimal("0.70")
+            # Calculate cost: ~$0.10 per 5s clip × 6 clips = $0.60 per 30s scene
+            cost = Decimal(str(num_clips)) * Decimal("0.10")
 
             result = {
                 "video_url": final_video_url,
@@ -83,72 +79,64 @@ class VideoGenerator:
             return result
 
         except Exception as e:
-            logger.error(f"Error generating video with Kling AI: {e}")
+            logger.error(f"Error generating video with Luma AI: {e}")
             # Fall back to mock for development
             logger.warning("Falling back to mock video generation")
             return {
                 "video_url": f"mock://video/{int(time.time())}.mp4",
                 "duration": duration,
-                "cost": Decimal("2.10"),
+                "cost": Decimal("0.60"),
                 "generation_time": 0.1
             }
 
-    async def _generate_single_clip(self, prompt: str, duration: int) -> str:
+    async def _generate_single_clip(self, prompt: str) -> str:
         """
-        Generate a single video clip using Kling AI API.
+        Generate a single ~5s video clip using Luma AI API.
 
         Args:
             prompt: Enhanced video prompt
-            duration: Clip duration (5 or 10 seconds)
 
         Returns:
             Video URL
         """
-        # Kling AI uses access_key and secret_key in the payload, not headers
-        # Reference: Kling AI API documentation
-        payload = {
-            "access_key": self.access_key,
-            "secret_key": self.secret_key,
-            "model_name": "kling-v-1",
-            "prompt": prompt,
-            "duration": str(duration),
-            "aspect_ratio": "16:9",
-            "cfg_scale": 0.5,
-            "mode": "std"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
         }
 
-        headers = {
-            "Content-Type": "application/json"
+        payload = {
+            "prompt": prompt,
+            "aspect_ratio": "16:9",
+            "loop": False
         }
 
         async with httpx.AsyncClient(timeout=600.0) as client:
             # Submit generation request
-            logger.info("Submitting generation request to Kling AI...")
-            logger.info(f"Payload: {payload}")  # Debug log
+            logger.info("Submitting generation request to Luma AI...")
             response = await client.post(
-                f"{self.base_url}/videos/text2video",
+                f"{self.base_url}/generations",
                 headers=headers,
                 json=payload
             )
 
             if response.status_code != 200:
-                raise Exception(f"Kling AI API error: {response.status_code} - {response.text}")
+                raise Exception(f"Luma AI API error: {response.status_code} - {response.text}")
 
             data = response.json()
-            task_id = data.get("data", {}).get("task_id")
+            generation_id = data.get("id")
 
-            if not task_id:
-                raise Exception(f"No task ID returned from Kling AI: {data}")
+            if not generation_id:
+                raise Exception(f"No generation ID returned from Luma AI: {data}")
 
-            logger.info(f"Video generation started (task ID: {task_id})")
+            logger.info(f"Video generation started (ID: {generation_id})")
 
             # Poll for completion
-            max_attempts = 120  # 10 minutes max (Kling can take a while)
+            max_attempts = 120  # 10 minutes max
             for attempt in range(max_attempts):
                 await asyncio.sleep(5)  # Check every 5 seconds
 
                 status_response = await client.get(
-                    f"{self.base_url}/videos/text2video/{task_id}",
+                    f"{self.base_url}/generations/{generation_id}",
                     headers=headers
                 )
 
@@ -156,19 +144,19 @@ class VideoGenerator:
                     raise Exception(f"Status check failed: {status_response.status_code}")
 
                 status_data = status_response.json()
-                status = status_data.get("data", {}).get("task_status")
+                state = status_data.get("state")
 
-                logger.info(f"Generation status: {status} (attempt {attempt + 1}/{max_attempts})")
+                logger.info(f"Generation state: {state} (attempt {attempt + 1}/{max_attempts})")
 
-                if status == "succeed":
-                    video_url = status_data.get("data", {}).get("task_result", {}).get("videos", [{}])[0].get("url")
+                if state == "completed":
+                    video_url = status_data.get("video", {}).get("url")
                     if not video_url:
                         raise Exception("No video URL in response")
 
                     return video_url
 
-                elif status in ["failed", "failed-nsfw"]:
-                    error_msg = status_data.get("data", {}).get("task_status_msg", "Unknown error")
+                elif state == "failed":
+                    error_msg = status_data.get("failure_reason", "Unknown error")
                     raise Exception(f"Generation failed: {error_msg}")
 
             # Timeout
@@ -227,10 +215,7 @@ class VideoGenerator:
             logger.info("✓ FFmpeg concatenation complete")
 
             # TODO: Upload to S3/storage and return public URL
-            # For now, return a mock URL (you'll need to implement S3 upload)
-            # In production, you'd upload output_path to S3 here
-
-            # Placeholder: Return first clip URL for now
+            # For now, return first clip URL as placeholder
             # You'll need to implement proper S3 upload in storage.py
             logger.warning("Using first clip URL as placeholder - implement S3 upload for concatenated video")
             return clip_urls[0]
@@ -251,7 +236,7 @@ class VideoGenerator:
 
         Args:
             base_prompt: Original enhanced prompt
-            segment_num: Current segment number (1-3)
+            segment_num: Current segment number (1-6)
             total_segments: Total number of segments
 
         Returns:
@@ -278,5 +263,5 @@ class MockVideoGenerator:
         return {
             "video_url": f"mock://video/{int(time.time())}.mp4",
             "duration": duration,
-            "cost": Decimal("2.10")
+            "cost": Decimal("0.60")
         }

@@ -81,7 +81,7 @@ class Orchestrator:
     def __init__(self):
         # Use real or mock implementations based on GENERATION_MODE
         if config.generation_mode == "real":
-            logger.info("Initializing REAL Director (Claude Opus 4.5), Video Generator (Kling AI), and Character Generator (DALL-E 3)")
+            logger.info("Initializing REAL Director (Claude Opus 4.5), Video Generator (Luma AI Dream Machine), and Character Generator (DALL-E 3)")
             self.director = Director()
             self.video_generator = VideoGenerator()
             self.character_generator = CharacterImageGenerator()
