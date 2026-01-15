@@ -52,6 +52,17 @@ CREATE TABLE IF NOT EXISTS scenes (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS scene_clips (
+    id SERIAL PRIMARY KEY,
+    scene_id INTEGER REFERENCES scenes(id) ON DELETE CASCADE,
+    clip_number INTEGER NOT NULL,
+    clip_url TEXT NOT NULL,
+    duration_seconds INTEGER DEFAULT 5,
+    generation_id TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(scene_id, clip_number)
+);
+
 CREATE TABLE IF NOT EXISTS narrative_context (
     id SERIAL PRIMARY KEY,
     scene_id INTEGER REFERENCES scenes(id) ON DELETE CASCADE,
@@ -74,6 +85,7 @@ CREATE TABLE IF NOT EXISTS generation_logs (
 CREATE INDEX IF NOT EXISTS idx_episodes_episode_number ON episodes(episode_number DESC);
 CREATE INDEX IF NOT EXISTS idx_scenes_scene_number ON scenes(scene_number DESC);
 CREATE INDEX IF NOT EXISTS idx_scenes_episode ON scenes(episode_id);
+CREATE INDEX IF NOT EXISTS idx_scene_clips_scene ON scene_clips(scene_id);
 CREATE INDEX IF NOT EXISTS idx_narrative_context_scene ON narrative_context(scene_id);
 CREATE INDEX IF NOT EXISTS idx_generation_logs_scene ON generation_logs(scene_number);
 

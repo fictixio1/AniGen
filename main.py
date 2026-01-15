@@ -174,7 +174,8 @@ class Orchestrator:
                 # Generate video
                 video_result = await self.video_generator.generate_video(
                     prompt=scene_plan["video_prompt"],
-                    duration=config.scene_duration_seconds
+                    duration=config.scene_duration_seconds,
+                    scene_id=scene_id
                 )
 
                 # Complete scene

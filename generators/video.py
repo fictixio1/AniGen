@@ -24,16 +24,17 @@ class VideoGenerator:
 
         logger.info(f"Luma API Key: {self.api_key[:10]}..." if self.api_key else "Luma API Key: NOT SET")
 
-    async def generate_video(self, prompt: str, duration: int = 30) -> Dict:
+    async def generate_video(self, prompt: str, duration: int = 30, scene_id: int = None) -> Dict:
         """
         Generate a 30-second video using Luma AI (6x 5s clips).
 
         Args:
             prompt: Video description/prompt
             duration: Video duration in seconds (default 30)
+            scene_id: Database scene ID to store clips
 
         Returns:
-            Dict with video_url, duration, and cost
+            Dict with video_url, clip_urls, duration, and cost
         """
         logger.info(f"Generating {duration}s video with Luma AI Dream Machine")
         logger.info(f"Prompt: {prompt[:100]}...")
@@ -57,6 +58,15 @@ class VideoGenerator:
                 clip_urls.append(clip_url)
                 logger.info(f"✓ Clip {i+1} generated: {clip_url}")
 
+                # Save clip to database if scene_id provided
+                if scene_id:
+                    from database import db
+                    await db.execute("""
+                        INSERT INTO scene_clips (scene_id, clip_number, clip_url, duration_seconds)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (scene_id, clip_number) DO UPDATE SET clip_url = $3
+                    """, scene_id, i+1, clip_url, 5)
+
             # Concatenate clips using FFmpeg
             logger.info("Concatenating clips with FFmpeg...")
             final_video_url = await self._concatenate_clips(clip_urls)
@@ -68,6 +78,7 @@ class VideoGenerator:
 
             result = {
                 "video_url": final_video_url,
+                "clip_urls": clip_urls,
                 "duration": duration,
                 "cost": cost,
                 "generation_time": generation_time

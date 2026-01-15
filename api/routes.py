@@ -34,7 +34,7 @@ async def get_episodes(limit: int = 20, offset: int = 0):
 
 @router.get("/api/episodes/{episode_number}")
 async def get_episode(episode_number: int):
-    """Get episode details with all scenes."""
+    """Get episode details with all scenes and clips."""
     episode = await db.fetchrow("""
         SELECT * FROM episodes WHERE episode_number = $1
     """, episode_number)
@@ -48,9 +48,23 @@ async def get_episode(episode_number: int):
         ORDER BY scene_in_episode ASC
     """, episode["id"])
 
+    # Fetch clips for each scene
+    scenes_with_clips = []
+    for scene in scenes:
+        clips = await db.fetch("""
+            SELECT clip_number, clip_url, duration_seconds, created_at
+            FROM scene_clips
+            WHERE scene_id = $1
+            ORDER BY clip_number ASC
+        """, scene["id"])
+
+        scene_dict = dict(scene)
+        scene_dict["clips"] = [dict(clip) for clip in clips]
+        scenes_with_clips.append(scene_dict)
+
     return {
         "episode": dict(episode),
-        "scenes": [dict(scene) for scene in scenes]
+        "scenes": scenes_with_clips
     }
 
 
