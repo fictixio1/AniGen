@@ -150,9 +150,14 @@ class VideoGenerator:
                 logger.info(f"Generation state: {state} (attempt {attempt + 1}/{max_attempts})")
 
                 if state == "completed":
-                    video_url = status_data.get("video", {}).get("url")
+                    # Luma API returns video URL in assets.video
+                    assets = status_data.get("assets")
+                    if not assets:
+                        raise Exception(f"No assets in completed response: {status_data}")
+
+                    video_url = assets.get("video")
                     if not video_url:
-                        raise Exception("No video URL in response")
+                        raise Exception(f"No video URL in assets: {assets}")
 
                     return video_url
 
