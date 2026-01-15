@@ -27,6 +27,36 @@ class Database:
             )
             logger.info("Database connection pool created")
 
+            # Initialize database schema on first connection
+            await self._initialize_schema()
+
+    async def _initialize_schema(self):
+        """Create tables if they don't exist."""
+        logger.info("Initializing database schema...")
+
+        # Read schema from file
+        import os
+        schema_file = os.path.join(os.path.dirname(__file__), 'schemas', 'database_schema.sql')
+
+        try:
+            with open(schema_file, 'r') as f:
+                schema_sql = f.read()
+
+            async with self.pool.acquire() as conn:
+                await conn.execute(schema_sql)
+
+            # Initialize series_state if empty
+            await self.execute("""
+                INSERT INTO series_state (id, current_episode, current_scene_in_episode, total_scenes, total_episodes)
+                VALUES (1, 1, 1, 0, 0)
+                ON CONFLICT (id) DO NOTHING
+            """)
+
+            logger.info("Database schema initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize schema: {e}")
+            raise
+
     async def disconnect(self):
         """Close connection pool."""
         if self.pool:
