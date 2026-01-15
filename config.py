@@ -53,3 +53,10 @@ class Config(BaseSettings):
 
 # Global config instance
 config = Config()
+
+# Debug: Log what DATABASE_URL we're actually using
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info(f"Config loaded - DATABASE_URL from env: {os.getenv('DATABASE_URL', 'NOT SET')}")
+logger.info(f"Config loaded - database_url value: {config.database_url}")
