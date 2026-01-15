@@ -120,7 +120,7 @@ class VideoGenerator:
                 json=payload
             )
 
-            if response.status_code != 200:
+            if response.status_code not in [200, 201]:
                 raise Exception(f"Luma AI API error: {response.status_code} - {response.text}")
 
             data = response.json()
