@@ -27,7 +27,7 @@ class Director:
             context: Canon context (characters, recent events, world state)
 
         Returns:
-            Dict with episode_summary, scenes list, and estimated_cost
+            Dict with episode_summary, scenes list, new_characters (if any), and estimated_cost
         """
         logger.info(f"Director planning episode {episode_number}")
 
@@ -91,15 +91,30 @@ OUTPUT FORMAT:
 You must respond with valid JSON in this exact structure:
 {
   "episode_summary": "Brief 1-2 sentence summary of what happens in this episode",
+  "new_characters": [
+    {
+      "name": "Character Name",
+      "description": "Detailed physical appearance (hair color, eye color, clothing, distinguishing features, age, build). Include personality traits for context.",
+      "role": "protagonist/antagonist/supporting"
+    }
+  ],
   "scenes": [
     {
       "scene_in_episode": 1,
-      "video_prompt": "Detailed visual description for AI video generation (anime style, camera angles, action, setting, lighting)",
-      "narrative_summary": "What happens in this scene narratively"
+      "video_prompt": "Detailed visual description for AI video generation (anime style, camera angles, action, setting, lighting). INCLUDE character names and refer to their established appearances.",
+      "narrative_summary": "What happens in this scene narratively",
+      "characters_present": ["CharacterName1", "CharacterName2"]
     },
     ... (6 scenes total)
   ]
 }
+
+CHARACTER GUIDELINES:
+- Only add to "new_characters" if introducing a NEW character not in the existing cast
+- For episode 1, create 2-4 main characters to establish the core cast
+- Physical descriptions must be specific (e.g., "spiky blue hair", "red jacket", "scar over left eye")
+- Once a character is established, refer to them by name in video prompts
+- Keep character designs anime-appropriate and visually distinct from each other
 
 VIDEO PROMPT GUIDELINES:
 - Start with "Anime style:" to set the visual tone
@@ -192,14 +207,33 @@ Remember: Output must be valid JSON following the exact format specified in your
             if len(plan["scenes"]) != 6:
                 raise ValueError(f"Expected 6 scenes, got {len(plan['scenes'])}")
 
+            # Ensure new_characters exists (can be empty list)
+            if "new_characters" not in plan:
+                plan["new_characters"] = []
+
+            # Validate new characters structure
+            for char in plan["new_characters"]:
+                if "name" not in char or "description" not in char:
+                    raise ValueError(f"Character missing required fields: {char}")
+
             # Ensure scene_in_episode is set correctly
             for i, scene in enumerate(plan["scenes"], 1):
                 if "scene_in_episode" not in scene:
                     scene["scene_in_episode"] = i
                 if "video_prompt" not in scene or "narrative_summary" not in scene:
                     raise ValueError(f"Scene {i} missing required fields")
+                # Ensure characters_present exists
+                if "characters_present" not in scene:
+                    scene["characters_present"] = []
 
             plan["episode_number"] = episode_number
+
+            # Log new characters
+            if plan["new_characters"]:
+                logger.info(f"Episode {episode_number} introduces {len(plan['new_characters'])} new character(s):")
+                for char in plan["new_characters"]:
+                    logger.info(f"  - {char['name']}: {char['description'][:100]}...")
+
             return plan
 
         except json.JSONDecodeError as e:

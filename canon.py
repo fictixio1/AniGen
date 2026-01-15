@@ -113,6 +113,35 @@ class CanonMemory:
             for row in rows
         ]
 
+    async def create_character(
+        self,
+        name: str,
+        description: str,
+        image_url: str,
+        role: str = "supporting"
+    ) -> str:
+        """
+        Create a new character in the database.
+
+        Returns:
+            character_id: The database ID for the character
+        """
+        # Generate a unique character ID
+        count = await db.fetchval("SELECT COUNT(*) FROM characters")
+        char_id = f"char_{count + 1:03d}"
+
+        # Get current scene number for first_appearance
+        state = await self.get_series_state()
+        current_scene = state["total_scenes"] + 1
+
+        await db.execute("""
+            INSERT INTO characters (id, name, image_url, canonical_state, first_appearance_scene, last_appearance_scene)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, char_id, name, image_url, description, current_scene, current_scene)
+
+        logger.info(f"Created character: {name} (ID: {char_id})")
+        return char_id
+
     async def get_narrative_context(self, limit: int = 20) -> List[Dict]:
         """Get recent narrative context."""
         rows = await db.fetch("""
@@ -134,14 +163,38 @@ class CanonMemory:
         """Build complete context for Director model."""
         series_state = await self.get_series_state()
         recent_scenes = await self.get_recent_scenes(limit=100)
-        characters = await self.get_characters()
+        characters_list = await self.get_characters()
         narrative_context = await self.get_narrative_context(limit=20)
+
+        # Format characters for Director prompt
+        characters_dict = {
+            char["id"]: {
+                "name": char["name"],
+                "canonical_state": char["canonical_state"],
+                "image_url": char["image_url"]
+            }
+            for char in characters_list
+        }
+
+        # Format recent events from scenes
+        recent_events = [
+            f"Scene {scene['scene_number']} (Ep {scene['episode_number']}, Scene {scene['scene_in_episode']}): {scene['narrative_summary']}"
+            for scene in recent_scenes[-10:]  # Last 10 scenes
+        ]
+
+        # Extract open threads from narrative context
+        open_threads = [
+            ctx["content"]
+            for ctx in narrative_context
+            if ctx["context_type"] == "open_thread"
+        ]
 
         return {
             "series_state": series_state,
-            "recent_scenes": recent_scenes,
-            "characters": characters,
-            "narrative_context": narrative_context
+            "characters": characters_dict,
+            "recent_events": recent_events,
+            "open_threads": open_threads,
+            "current_arc": "Beginning"  # TODO: Track arcs properly
         }
 
 

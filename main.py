@@ -14,6 +14,7 @@ from canon import canon
 from episode_manager import episode_manager
 from director import Director
 from generators.video import VideoGenerator, MockVideoGenerator
+from generators.character import CharacterImageGenerator, MockCharacterImageGenerator
 
 # Configure logging
 logging.basicConfig(
@@ -79,13 +80,15 @@ class Orchestrator:
     def __init__(self):
         # Use real or mock implementations based on GENERATION_MODE
         if config.generation_mode == "real":
-            logger.info("Initializing REAL Director (Claude Opus 4.5) and Video Generator (Veo 3.1 Fast)")
+            logger.info("Initializing REAL Director (Claude Opus 4.5), Video Generator (Veo 3.1 Fast), and Character Generator (DALL-E 3)")
             self.director = Director()
             self.video_generator = VideoGenerator()
+            self.character_generator = CharacterImageGenerator()
         else:
-            logger.info("Initializing MOCK Director and Video Generator")
+            logger.info("Initializing MOCK Director, Video Generator, and Character Generator")
             self.director = MockDirector()
             self.video_generator = MockVideoGenerator()
+            self.character_generator = MockCharacterImageGenerator()
 
     async def generate_episode(self):
         """Generate one complete episode (6 scenes)."""
@@ -112,6 +115,32 @@ class Orchestrator:
                 component="director",
                 message=f"Planned episode {episode_number}: {episode_plan['episode_summary']}"
             )
+
+            # Step 1.5: Generate character images for any new characters
+            if episode_plan.get("new_characters"):
+                logger.info(f"Generating images for {len(episode_plan['new_characters'])} new character(s)")
+
+                for char_spec in episode_plan["new_characters"]:
+                    try:
+                        # Generate character image
+                        char_result = await self.character_generator.generate_character_image(
+                            character_name=char_spec["name"],
+                            character_description=char_spec["description"]
+                        )
+
+                        # Store character in database
+                        char_id = await canon.create_character(
+                            name=char_spec["name"],
+                            description=char_spec["description"],
+                            image_url=char_result["image_url"],
+                            role=char_spec.get("role", "supporting")
+                        )
+
+                        logger.info(f"✓ Character created: {char_spec['name']} (ID: {char_id})")
+
+                    except Exception as e:
+                        logger.error(f"Failed to generate character {char_spec['name']}: {e}")
+                        # Continue anyway - character creation is not critical for episode generation
 
             # Create episode record
             episode_id = await episode_manager.start_episode(
