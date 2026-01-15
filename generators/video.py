@@ -106,9 +106,9 @@ class VideoGenerator:
 
         payload = {
             "prompt": prompt,
-            "aspect_ratio": "16:9",
-            "loop": False,
-            "model": "ray-2"
+            "model": "ray-2",
+            "resolution": "720p",
+            "duration": "5s"
         }
 
         async with httpx.AsyncClient(timeout=600.0) as client:
