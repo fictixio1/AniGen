@@ -12,6 +12,8 @@ from config import config
 from database import db
 from canon import canon
 from episode_manager import episode_manager
+from director import Director
+from generators.video import VideoGenerator, MockVideoGenerator
 
 # Configure logging
 logging.basicConfig(
@@ -75,8 +77,15 @@ class Orchestrator:
     """Main orchestration loop."""
 
     def __init__(self):
-        self.director = MockDirector()
-        self.video_generator = MockVideoGenerator()
+        # Use real or mock implementations based on GENERATION_MODE
+        if config.generation_mode == "real":
+            logger.info("Initializing REAL Director (Claude Opus 4.5) and Video Generator (Veo 3.1 Fast)")
+            self.director = Director()
+            self.video_generator = VideoGenerator()
+        else:
+            logger.info("Initializing MOCK Director and Video Generator")
+            self.director = MockDirector()
+            self.video_generator = MockVideoGenerator()
 
     async def generate_episode(self):
         """Generate one complete episode (6 scenes)."""
