@@ -147,3 +147,19 @@ async def get_logs(limit: int = 100, level: Optional[str] = None):
         "logs": [dict(log) for log in logs],
         "limit": limit
     }
+
+
+@router.post("/api/trigger-generation")
+async def trigger_generation():
+    """Manually trigger the next scene generation."""
+    import asyncio
+    from pathlib import Path
+
+    # Create a trigger file that main.py will check
+    trigger_file = Path("/tmp/trigger_generation.txt")
+    trigger_file.write_text("trigger")
+
+    return {
+        "status": "triggered",
+        "message": "Generation trigger sent. Check logs for progress."
+    }

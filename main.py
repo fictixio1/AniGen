@@ -194,10 +194,19 @@ class Orchestrator:
                 if scene_in_episode < config.scenes_per_episode and not shutdown_flag:
                     wait_seconds = config.scene_generation_interval_minutes * 60
                     logger.info(f"Waiting {config.scene_generation_interval_minutes} minutes until next scene...")
+                    logger.info("(Or trigger manually via API: POST /api/trigger-generation)")
 
-                    # Break wait into 1-second chunks to check shutdown flag
+                    # Break wait into 1-second chunks to check shutdown flag or manual trigger
+                    from pathlib import Path
+                    trigger_file = Path("/tmp/trigger_generation.txt")
+
                     for _ in range(wait_seconds):
                         if shutdown_flag:
+                            break
+                        # Check for manual trigger
+                        if trigger_file.exists():
+                            logger.info("⚡ Manual trigger detected! Starting next scene immediately...")
+                            trigger_file.unlink()  # Delete the trigger file
                             break
                         await asyncio.sleep(1)
 
